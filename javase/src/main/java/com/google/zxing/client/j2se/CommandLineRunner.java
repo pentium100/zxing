@@ -66,7 +66,8 @@ public final class CommandLineRunner {
         if (!Files.exists(Paths.get(inputPath))) {
           throw use;
         }
-        uri = new URI("file", inputPath, null);
+        //uri = new URI("file", inputPath, null);
+        uri = Paths.get(inputPath).toUri();
       }
       inputs.add(uri);
     }
@@ -104,11 +105,24 @@ public final class CommandLineRunner {
     }
   }
 
+  private static Path uriToPath(URI input){
+
+    Path inputPath = null;
+    if(input.getScheme().equals("file") && input.isOpaque()){
+      inputPath = Paths.get(input.getSchemeSpecificPart());
+    }else {
+      inputPath = Paths.get(input);
+    }
+
+    return inputPath;
+
+  }
+
   private static List<URI> expand(List<URI> inputs) throws IOException {
     List<URI> expanded = new ArrayList<>();
     for (URI input : inputs) {
       if (isFileOrDir(input)) {
-        Path inputPath = Paths.get(input);
+        Path inputPath = uriToPath(input);
         if (Files.isDirectory(inputPath)) {
           try (DirectoryStream<Path> childPaths = Files.newDirectoryStream(inputPath)) {
             for (Path childPath : childPaths) {
@@ -131,12 +145,15 @@ public final class CommandLineRunner {
     return expanded;
   }
 
+
+
+
   private static List<URI> retainValid(List<URI> inputs, boolean recursive) {
     List<URI> retained = new ArrayList<>();
     for (URI input : inputs) {
       boolean retain;
       if (isFileOrDir(input)) {
-        Path inputPath = Paths.get(input);
+        Path inputPath = uriToPath(input);
         retain =
             !inputPath.getFileName().toString().startsWith(".") &&
             (recursive || !Files.isDirectory(inputPath));
